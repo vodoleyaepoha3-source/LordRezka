@@ -1,6 +1,8 @@
 python-telegram-bot==20.3
 requests
-imageio-ffmpeg
+ffmpeg-python
+static-ffmpeg
+
 
 
 
