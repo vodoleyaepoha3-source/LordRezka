@@ -1,6 +1,6 @@
 import os, glob, shutil, subprocess, logging, math, re
 import requests
-import imageio_ffmpeg
+import static_ffmpeg
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
     filters, ConversationHandler
@@ -11,8 +11,10 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 WORK_DIR = "/tmp/videobot"
 WAITING_SECONDS, WAITING_LINK = range(2)
 
-FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
-FFPROBE = FFMPEG.replace("ffmpeg", "ffprobe")
+static_ffmpeg.add_paths()
+FFMPEG = "ffmpeg"
+FFPROBE = "ffprobe"
+
 
 def extract_gdrive_id(url):
     patterns = [r'/file/d/([a-zA-Z0-9_-]+)', r'id=([a-zA-Z0-9_-]+)']
