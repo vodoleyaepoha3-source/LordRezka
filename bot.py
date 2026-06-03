@@ -1,15 +1,18 @@
 import os, glob, shutil, subprocess, logging, math, re
 import requests
-from telegram import Update
+import imageio_ffmpeg
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
-    filters, ContextTypes, ConversationHandler
+    filters, ConversationHandler
 )
 
 logging.basicConfig(level=logging.INFO)
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 WORK_DIR = "/tmp/videobot"
 WAITING_SECONDS, WAITING_LINK = range(2)
+
+FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
+FFPROBE = FFMPEG.replace("ffmpeg", "ffprobe")
 
 def extract_gdrive_id(url):
     patterns = [r'/file/d/([a-zA-Z0-9_-]+)', r'id=([a-zA-Z0-9_-]+)']
@@ -37,7 +40,7 @@ def download_gdrive(file_id, dest_path):
 
 def get_duration(path):
     result = subprocess.run([
-        "ffprobe", "-v", "error",
+        FFPROBE, "-v", "error",
         "-show_entries", "format=duration",
         "-of", "default=noprint_wrappers=1:nokey=1", path
     ], capture_output=True, text=True)
@@ -47,7 +50,7 @@ def split_video(input_path, output_dir, segment_sec):
     os.makedirs(output_dir, exist_ok=True)
     pattern = os.path.join(output_dir, "part_%03d.mp4")
     subprocess.run([
-        "ffmpeg", "-i", input_path,
+        FFMPEG, "-i", input_path,
         "-c", "copy", "-map", "0",
         "-segment_time", str(segment_sec),
         "-f", "segment",
@@ -65,7 +68,7 @@ def compress_if_needed(path, max_mb=45):
     video_bitrate = target_bitrate - 128
     compressed = path.replace(".mp4", "_c.mp4")
     subprocess.run([
-        "ffmpeg", "-i", path,
+        FFMPEG, "-i", path,
         "-b:v", f"{video_bitrate}k", "-b:a", "128k",
         "-c:v", "libx264", "-c:a", "aac",
         compressed, "-y"
