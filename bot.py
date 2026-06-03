@@ -1,4 +1,5 @@
 import os, glob, shutil, subprocess, logging, math, re
+import requests
 from telegram import Update
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
@@ -20,8 +21,18 @@ def extract_gdrive_id(url):
 
 def download_gdrive(file_id, dest_path):
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    session = requests.Session()
     url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
-    subprocess.run(["wget", "-O", dest_path, url], check=True)
+    response = session.get(url, stream=True)
+    for key, value in response.cookies.items():
+        if key.startswith("download_warning"):
+            url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm={value}"
+            response = session.get(url, stream=True)
+            break
+    with open(dest_path, "wb") as f:
+        for chunk in response.iter_content(chunk_size=32768):
+            if chunk:
+                f.write(chunk)
     return dest_path
 
 def get_duration(path):
@@ -170,4 +181,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
